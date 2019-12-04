@@ -754,6 +754,9 @@ class VAE():
                     # If decision target is stimulus value, no need to input
                     # a probe image
                     probes = np.zeros_like(x)
+                else:
+                    recall_targets = np.zeros((self.batch_size,
+                                               self.decision_dim))
                 fdict = {
                     self.inputs: x,
                     self.targets: x,
@@ -790,6 +793,13 @@ class VAE():
                          probe_noise_std=self.probe_noise_std,
                          logistic_decision=self.logistic_decision,
                          seqlen=self.seqlen)
+                    if self.decision_target == "recall":
+                        # If decision target is stimulus value, no need to
+                        # input a probe image
+                        probes = np.zeros_like(x)
+                    else:
+                        recall_targets = np.zeros((self.batch_size,
+                                                   self.decision_dim))
                     fdict = {
                         self.inputs: x,
                         self.targets: x,
@@ -801,8 +811,7 @@ class VAE():
                         self.rate_loss_unweighted,
                         self.reconstruction_loss_unweighted,
                         self.decision_loss_unweighted, self.total_loss
-                    ],
-                                                         feed_dict=fdict)
+                    ], feed_dict=fdict)
                     print(
                         "Holdout losses: total: {:.5f}, pixel: {:.5f}, rate: "
                         "{:.5f}, decision: {:.5f}".format(
