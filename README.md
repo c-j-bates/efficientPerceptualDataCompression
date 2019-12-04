@@ -35,7 +35,7 @@ where `--dim` is whether the output of the decision module is recall of leaf wid
 
 To train models corresponding to the fruits experiments, run:
 
-`python VAE_fruits.py --dataset fruits360 --rate_loss_weight <VALUE GREATER THAN ZERO> --reconstruction_loss_weights .1 1 --batch 128 --learning_rate 0.0001 --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING fruits-360>`
+`python VAE_fruits.py --rate_loss_weight <VALUE GREATER THAN ZERO> --reconstruction_loss_weights .1 1 --batch 128 --learning_rate 0.0001 --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING fruits-360>`
 
 
 To train models on pop-out task, run:
