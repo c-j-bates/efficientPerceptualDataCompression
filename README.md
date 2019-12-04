@@ -1,13 +1,11 @@
 # efficientPerceptualDataCompression
 Scripts for training neural network models in forthcoming Psychological Review manuscript, "Efficient Data Compression in Perception and Perceptual Memory" (Bates, Jacobs).
 
-<pre>
 Dependencies:
-    -tensorflow==1.12
-    -numpy
-    -scipy
-    -python-pillow
-</pre>
+* tensorflow==1.12
+* numpy
+* scipy
+* python-pillow
 
 In addition, there are two image datasets that must be downloaded: the Fruits-360 dataset (https://github.com/Horea94/Fruit-Images-Dataset) and my own dataset of downsampled plant-like images (https://drive.google.com/open?id=170VD85Ke4vExYhcXviqGh-pVy1EIAJlS).
 
@@ -48,12 +46,10 @@ To train models on pop-out task, run:
 
 `python VAE_popout.py --dataset attention_search_shape --dataset_size 1000 --regenerate_steps 1000 --rate_loss_weight <VALUE GREATER THAN ZERO> --reconstruction_loss_weights 1 1 --decision_loss_weights .01 1 --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <LOCATION TO SAVE AUTO-GENERATED DATASETS>`
 
-<pre>
 `--dataset` controls which kind of visual search display is generated, and can be:
-    "attention_search_shape": all objects are same color but target and distractor differ by shape (used in manuscript)\
-    "attention_search_color": all objects are same shape but target and distractor differ by color\
-    "attention_search_both": objects vary by both color and shape, and targets may match distractors along one of those dimensions\
-    "attention_search_both2": same as attention_search_both, but restricts space of colors to red and blue rather than red, blue, green (used in manuscript)
-</pre>
+* "attention_search_shape": all objects are same color but target and distractor differ by shape (used in manuscript)
+* "attention_search_color": all objects are same shape but target and distractor differ by color
+* "attention_search_both": objects vary by both color and shape, and targets may match distractors along one of those dimensions
+* "attention_search_both2": same as attention_search_both, but restricts space of colors to red and blue rather than red, blue, green (used in manuscript)
 
 `--dataset_size` determines the size of the randomly generated training set, while `--regenerate_steps` controls how often the training set is regenerated. If a very large training set cannot fit into memory, one can generate a smaller training set but periodically regenerate it to alleviate overfitting.
