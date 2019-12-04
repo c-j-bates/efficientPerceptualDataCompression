@@ -7,7 +7,7 @@ Dependencies:
 * scipy
 * python-pillow
 
-In addition, there are two image datasets that must be downloaded: the Fruits-360 dataset (https://github.com/Horea94/Fruit-Images-Dataset) and my own dataset of downsampled plant-like images (https://drive.google.com/open?id=170VD85Ke4vExYhcXviqGh-pVy1EIAJlS).
+In addition, there are two image datasets that must be downloaded: the Fruits-360 dataset (https://github.com/Horea94/Fruit-Images-Dataset) and my own dataset of downsampled plant-like images (https://drive.google.com/open?id=170VD85Ke4vExYhcXviqGh-pVy1EIAJlS). For plants-related experiments, the `--image_width` argument in commands below can be supplied with the value 100 or 120, as these correspond to the two different subdirectories in the image set (but note that "plants_setsize" should be three times these values, since it copies them onto a 3x3 grid).
 
 For all cases below, the following is true:
 `--rate_loss_weight` scales the gradient steps corresponding to the KL divergence term in the loss function
@@ -18,23 +18,39 @@ For both reconstruction and decision loss weights, there are two numbers, the fi
 
 To train models corresponding to Figure 7 (plants with varying capacities), run:
 
-`python VAE.py --dataset plants --rate_loss_weight <VALUE GREATER THAN ZERO> --reconstruction_loss_weights 1 1 --decision_loss_weights 0 0 --latent 500 --decision_size 100 --hidden 500 --layer_type MLP --image_width 120 --decoder_layers 2 --encoder_layers 2 --dataset_size 10000 --regenerate_steps 10000 --learning_rate 0.0001 --batch 128 --pregenerate --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING 'plant_stimuli'>`
+`python VAE.py --dataset plants --rate_loss_weight <VALUE GREATER THAN ZERO> --reconstruction_loss_weights 1 1 --decision_loss_weights 0 0 --latent 500 --hidden 500 --layer_type MLP --image_width 120 --decoder_layers 2 --encoder_layers 2 --learning_rate 0.0001 --batch 128 --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING 'plant_stimuli'>`
 
 Note that decision loss is set to zero (i.e. it is ignored). `--encoder_layers` and `--decoder_layers` determine the number of layers in the encoder and decoder respectively.
 
 
 To train models corresponding to Figure 8 (plants with varying prior distributions), run:
 
-`python VAE.py --dataset plants --dim 1 --decision_dim 2 --mean 50 --std 10 --rate_loss_weight <VALUE GREATER THAN ZERO> --reconstruction_loss_weights 1 1 --decision_loss_weights 0 0 --latent 500 --decision_size 100 --hidden 500 --layer_type MLP --image_width 120 --decoder_layers 2 --encoder_layers 2 --dataset_size 10000 --regenerate_steps 10000 --learning_rate 0.0001 --batch 128 --pregenerate --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING 'plant_stimuli'>`
+`python VAE.py --dataset plants --dim <0 | 1> --mean 50 --std <10 | 10000> --rate_loss_weight <VALUE GREATER THAN ZERO> --reconstruction_loss_weights 1 1 --decision_loss_weights 0 0 --latent 500 --hidden 500 --layer_type MLP --image_width 120 --decoder_layers 2 --encoder_layers 2 --learning_rate 0.0001 --batch 128 --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING 'plant_stimuli'>`
 
 where `--mean` and `--std` control the mean and standard deviation of the sampling distribution along either leaf width (`--dim 0`) or leaf angle (`--dim 1`).
 
 
 To train models corresonding to the set-size experiments, run:
 
-`python VAE.py --dataset plants_setsize<N> --rate_loss <VALUE GREATER THAN ZERO> --decision_loss_weights 0.01 0.01 --dim 1 --latent 500 --decision_size 100 --hidden 500 --layer_type MLP --image_width 360 --decoder_layers 2 --encoder_layers 2 --dataset_size 5000 --regenerate_steps 10000 --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING 'plant_stimuli'>`
+`python VAE.py --dataset plants_setsize<N> --rate_loss <VALUE GREATER THAN ZERO> --decision_loss_weights 0.01 0.01 --dim <0 | 1> --latent 500 --decision_size 100 --hidden 500 --layer_type MLP --image_width <300 | 360> --decoder_layers 2 --encoder_layers 2 --dataset_size 5000 --regenerate_steps 10000 --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING 'plant_stimuli'>`
 
 where `--dim` is whether the output of the decision module is recall of leaf width (0) or leaf angle (1). Valid arguments to `--dataset` are "plants_setsize1", "plants_setsize2", ..., "plants_setsize6".
+
+To train models corresponding to Figure 11 (only penalizing one stimulus dimension, either leaf width or leaf angle), run:
+
+`python VAE.py --dataset plants --rate_loss 1e-8 --reconstruction_loss_weights 0 1 --task_weights <0 1 | 1 0> --decision_dim 2 --dim <0 | 1> --latent 500 --decision_size 100 --hidden 500 --layer_type MLP --image_width 120 --decoder_layers 2 --encoder_layers 2 --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING 'plant_stimuli'>`
+
+Setting `--task_weights` to "0 1" makes leaf width the irrelevant dimension, while setting it to "1 0" makes leaf angle the irrelevant dimension.
+
+To train models corresponding to Figure 12 (top) (categorical bias with plants stimuli via categorical loss), run:
+
+`python VAE.py --dataset plants_categorical --rate_loss <VALUE GREATER THAN ZERO> --reconstruction_loss_weights 0.0001 1 --dim <0 | 1> --latent 500 --decision_size 100 --hidden 500 --layer_type MLP --image_width 120 --decoder_layers 2 --encoder_layers 2 --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING 'plant_stimuli'>`
+
+To train models corresponding to Figure 12 (bottom) (categorical bias with plants stimuli via bimodal prior), run:
+
+`python VAE.py --dataset plants_modal_prior_1D --rate_loss <VALUE GREATER THAN ZERO> --decision_loss_weights 0 0 --dim <0 | 1> --latent 500 --hidden 500 --layer_type MLP --image_width 120 --decoder_layers 2 --encoder_layers 2 --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING 'plant_stimuli'>`
+
+Note that decision loss is ignored, as this model only depends on the prior distribution. `--dim` specifies which stimulus dimension to apply the bimodal distribution to, leaving the other uniformly distributed.
 
 
 To train models corresponding to the fruits experiments, run:
