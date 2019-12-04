@@ -14,28 +14,28 @@ For both reconstruction and decision loss weights, there are two numbers, the fi
 
 To train models corresponding to Figure 7 (plants with varying capacities), run:
 
-`python VAE.py --dataset plants --rate_loss <VALUE GREATER THAN ZERO> --reconstruction_loss 1 1 --decision_loss 0 0 --latent 500 --decision_size 100 --hidden 500 --layer_type MLP --image_width 120 --decoder_layers 2 --encoder_layers 2 --dataset_size 10000 --regenerate_steps 10000 --learning_rate 0.0001 --batch 128 --pregenerate --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING 'plant_stimuli'>`
+`python VAE.py --dataset plants --rate_loss_weight <VALUE GREATER THAN ZERO> --reconstruction_loss_weights 1 1 --decision_loss_weights 0 0 --latent 500 --decision_size 100 --hidden 500 --layer_type MLP --image_width 120 --decoder_layers 2 --encoder_layers 2 --dataset_size 10000 --regenerate_steps 10000 --learning_rate 0.0001 --batch 128 --pregenerate --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING 'plant_stimuli'>`
 
 Note that decision loss is set to zero (i.e. it is ignored). `--encoder_layers` and `--decoder_layers` determine the number of layers in the encoder and decoder respectively.
 
 
 To train models corresponding to Figure 8 (plants with varying prior distributions), run:
 
-`python VAE.py --dataset plants --dim 1 --decision_dim 2 --mean 50 --std 10 --rate_loss <VALUE GREATER THAN ZERO> --reconstruction_loss 1 1 --decision_loss 0 0 --latent 500 --decision_size 100 --hidden 500 --layer_type MLP --image_width 120 --decoder_layers 2 --encoder_layers 2 --dataset_size 10000 --regenerate_steps 10000 --learning_rate 0.0001 --batch 128 --pregenerate --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING 'plant_stimuli'>`
+`python VAE.py --dataset plants --dim 1 --decision_dim 2 --mean 50 --std 10 --rate_loss_weight <VALUE GREATER THAN ZERO> --reconstruction_loss_weights 1 1 --decision_loss_weights 0 0 --latent 500 --decision_size 100 --hidden 500 --layer_type MLP --image_width 120 --decoder_layers 2 --encoder_layers 2 --dataset_size 10000 --regenerate_steps 10000 --learning_rate 0.0001 --batch 128 --pregenerate --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING 'plant_stimuli'>`
 
 where `--mean` and `--std` control the mean and standard deviation of the sampling distribution along either leaf width (`--dim 0`) or leaf angle (`--dim 1`).
 
 
 To train models corresonding to the set-size experiments, run:
 
-`python VAE.py --dataset plants_setsize<N> --rate_loss <VALUE GREATER THAN ZERO> --decision_loss 0.01 0.01 --dim 1 --latent 500 --decision_size 100 --hidden 500 --layer_type MLP --image_width 360 --decoder_layers 2 --encoder_layers 2 --dataset_size 1000 --regenerate_steps 10000 --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING 'plant_stimuli'>`
+`python VAE.py --dataset plants_setsize<N> --rate_loss <VALUE GREATER THAN ZERO> --decision_loss_weights 0.01 0.01 --dim 1 --latent 500 --decision_size 100 --hidden 500 --layer_type MLP --image_width 360 --decoder_layers 2 --encoder_layers 2 --dataset_size 1000 --regenerate_steps 10000 --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING 'plant_stimuli'>`
 
 where `--dim` is whether the output of the decision module is recall of leaf width (0) or leaf angle (1). Valid arguments to `--dataset` are "plants_setsize1", "plants_setsize2", ..., "plants_setsize6".
 
 
 To train models corresponding to the fruits experiments, run:
 
-`python VAE_fruits.py --dataset fruits360 --rate_loss <VALUE GREATER THAN ZERO> --reconstruction_loss .1 1 --batch 128 --learning_rate 0.0001 --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING fruits-360>`
+`python VAE_fruits.py --dataset fruits360 --rate_loss_weight <VALUE GREATER THAN ZERO> --reconstruction_loss_weights .1 1 --batch 128 --learning_rate 0.0001 --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING fruits-360>`
 
 
 To train models on pop-out task, run:
