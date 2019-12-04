@@ -32,7 +32,7 @@ where `--mean` and `--std` control the mean and standard deviation of the sampli
 
 To train models corresonding to the set-size experiments, run:
 
-`python VAE.py --dataset plants_setsize<N> --rate_loss <VALUE GREATER THAN ZERO> --decision_loss_weights 0.01 0.01 --dim 1 --latent 500 --decision_size 100 --hidden 500 --layer_type MLP --image_width 360 --decoder_layers 2 --encoder_layers 2 --dataset_size 1000 --regenerate_steps 10000 --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING 'plant_stimuli'>`
+`python VAE.py --dataset plants_setsize<N> --rate_loss <VALUE GREATER THAN ZERO> --decision_loss_weights 0.01 0.01 --dim 1 --latent 500 --decision_size 100 --hidden 500 --layer_type MLP --image_width 360 --decoder_layers 2 --encoder_layers 2 --dataset_size 5000 --regenerate_steps 10000 --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING 'plant_stimuli'>`
 
 where `--dim` is whether the output of the decision module is recall of leaf width (0) or leaf angle (1). Valid arguments to `--dataset` are "plants_setsize1", "plants_setsize2", ..., "plants_setsize6".
 
