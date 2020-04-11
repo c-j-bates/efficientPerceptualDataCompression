@@ -16,14 +16,14 @@ For all cases below, the following is true:
 For both reconstruction and decision loss weights, there are two numbers, the first corresponding to the encoder weights, and the second corresponding to any remaining weights affecting the loss (i.e. those involved in decoding from the latent units). For instance, if the first number is set to 0 for the decision loss, then the weights of the encoder will not be trained with respect to the decision loss.
 
 
-To train models corresponding to Figure 7 (plants with varying capacities), run:
+To train models corresponding to Figure 6 (plants with varying capacities), run:
 
 `python VAE.py --dataset plants --rate_loss_weight <VALUE GREATER THAN ZERO> --reconstruction_loss_weights 1 1 --decision_loss_weights 0 0 --latent 500 --hidden 500 --layer_type MLP --image_width 120 --decoder_layers 2 --encoder_layers 2 --learning_rate 0.0001 --batch 128 --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING 'plant_stimuli'>`
 
 Note that decision loss is set to zero (i.e. it is ignored). `--encoder_layers` and `--decoder_layers` determine the number of layers in the encoder and decoder respectively.
 
 
-To train models corresponding to Figure 8 (plants with varying prior distributions), run:
+To train models corresponding to Figure 7 (plants with varying prior distributions), run:
 
 `python VAE.py --dataset plants --dim <0 | 1> --mean 50 --std <10 | 10000> --rate_loss_weight <VALUE GREATER THAN ZERO> --reconstruction_loss_weights 1 1 --decision_loss_weights 0 0 --latent 500 --hidden 500 --layer_type MLP --image_width 120 --decoder_layers 2 --encoder_layers 2 --learning_rate 0.0001 --batch 128 --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING 'plant_stimuli'>`
 
@@ -36,17 +36,17 @@ To train models corresonding to the set-size experiments, run:
 
 where `--dim` is whether the output of the decision module is recall of leaf width (0) or leaf angle (1). Valid arguments to `--dataset` are "plants_setsize1", "plants_setsize2", ..., "plants_setsize6".
 
-To train models corresponding to Figure 11 (only penalizing one stimulus dimension, either leaf width or leaf angle), run:
+To train models corresponding to Figure 10 (only penalizing one stimulus dimension, either leaf width or leaf angle), run:
 
 `python VAE.py --dataset plants --rate_loss 1e-8 --reconstruction_loss_weights 0 1 --task_weights <0 1 | 1 0> --decision_dim 2 --dim <0 | 1> --latent 500 --decision_size 100 --hidden 500 --layer_type MLP --image_width 120 --decoder_layers 2 --encoder_layers 2 --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING 'plant_stimuli'>`
 
 Setting `--task_weights` to "0 1" makes leaf width the irrelevant dimension, while setting it to "1 0" makes leaf angle the irrelevant dimension.
 
-To train models corresponding to Figure 12 (top) (categorical bias with plants stimuli via categorical loss), run:
+To train models corresponding to Figure 11 (top) (categorical bias with plants stimuli via categorical loss), run:
 
 `python VAE.py --dataset plants_categorical --rate_loss <VALUE GREATER THAN ZERO> --reconstruction_loss_weights 0.0001 1 --dim <0 | 1> --latent 500 --decision_size 100 --hidden 500 --layer_type MLP --image_width 120 --decoder_layers 2 --encoder_layers 2 --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING 'plant_stimuli'>`
 
-To train models corresponding to Figure 12 (bottom) (categorical bias with plants stimuli via bimodal prior), run:
+To train models corresponding to Figure 11 (bottom) (categorical bias with plants stimuli via bimodal prior), run:
 
 `python VAE.py --dataset plants_modal_prior_1D --rate_loss <VALUE GREATER THAN ZERO> --decision_loss_weights 0 0 --dim <0 | 1> --latent 500 --hidden 500 --layer_type MLP --image_width 120 --decoder_layers 2 --encoder_layers 2 --checkpoint_dir <DESIRED CHECKPOINTS SAVE DIR> --trainingset_dir <PATH TO DIR CONTAINING 'plant_stimuli'>`
 
