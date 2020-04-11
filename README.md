@@ -1,13 +1,13 @@
 # efficientPerceptualDataCompression
-Scripts for training neural network models in forthcoming Psychological Review manuscript, "Efficient Data Compression in Perception and Perceptual Memory" (Bates, Jacobs).
+Scripts for training and analyzing neural network models in forthcoming Psychological Review manuscript, "Efficient Data Compression in Perception and Perceptual Memory" (Bates & Jacobs, 2020).
 
 Dependencies:
-* tensorflow==1.12
+* tensorflow, version==1.12
 * numpy
 * scipy
-* python-pillow
+* PIL (can install via: pip install python-pillow)
 
-In addition, there are two image datasets that must be downloaded: the Fruits-360 dataset (https://github.com/Horea94/Fruit-Images-Dataset) and my own dataset of downsampled plant-like images (https://drive.google.com/open?id=170VD85Ke4vExYhcXviqGh-pVy1EIAJlS). For plants-related experiments, the `--image_width` argument in commands below can be supplied with the value 100 or 120, as these correspond to the two different subdirectories in the image set (but note that "plants_setsize" should be three times these values, since it copies them onto a 3x3 grid).
+In addition, there are two image datasets that must be downloaded: the Fruits-360 dataset (https://github.com/Horea94/Fruit-Images-Dataset) and my own dataset of downsampled plant-like images (https://drive.google.com/open?id=170VD85Ke4vExYhcXviqGh-pVy1EIAJlS). For plants-related experiments, the `--image_width` argument in commands below can be supplied with the value 100 or 120, as these correspond to the two different subdirectories in the image set (but note that "plants_setsize" should be three times these values, 300 or 360, since it copies them onto a 3x3 grid).
 
 For all cases below, the following is true:
 `--rate_loss_weight` scales the gradient steps corresponding to the KL divergence term in the loss function
@@ -69,3 +69,59 @@ To train models on pop-out task, run:
 * "attention_search_both2": same as attention_search_both, but restricts space of colors to red and blue rather than red, blue, green (used in manuscript)
 
 `--dataset_size` determines the size of the randomly generated training set, while `--regenerate_steps` controls how often the training set is regenerated. If a very large training set cannot fit into memory, one can generate a smaller training set but periodically regenerate it to alleviate overfitting.
+
+To produce the figures in the paper, five scripts have been provided. To reproduce the results in Figure 6, run:
+
+`python analyze.py vae --dataset plants <COMMAND LINE ARGUMENTS USED WHEN TRAINING CORRESPONDING NETWORK> --visualize`
+
+To reproduce the results in Figure 7, run:
+
+`python analyze.py vae --dataset plants <COMMAND LINE ARGUMENTS USED WHEN TRAINING CORRESPONDING NETWORK> --correlation`
+
+Note the first argument (`vae`) specifies to build the network using VAE.py.
+
+To reproduce the results in Figure 8, run:
+
+`python analyze.py vae --dataset plants_setsize<N> <COMMAND LINE ARGUMENTS USED WHEN TRAINING CORRESPONDING NETWORK> --visualize`
+
+To reproduce the results in Figure 9, run:
+
+`python plot_plants_setsize_effects.py`
+
+(Please refer to the file to see or modify which network parameter settings are used.)
+
+To reproduce the results in Figure 10, run:
+
+`python analyze.py vae --dataset plants <COMMAND LINE ARGUMENTS USED WHEN TRAINING CORRESPONDING NETWORK> --plants_average_reconstruction`
+
+To reproduce the results in Figure 11, run:
+
+`python analyze.py vae --dataset plants_modal_prior_1D <COMMAND LINE ARGUMENTS USED WHEN TRAINING CORRESPONDING NETWORK> --visualize_grid`
+
+`python analyze.py vae --dataset plants_categorical <COMMAND LINE ARGUMENTS USED WHEN TRAINING CORRESPONDING NETWORK> --visualize_grid`
+
+To reproduce the results in Figure 12, run:
+
+`python analyze.py vae --dataset plants_modal_prior_1D <COMMAND LINE ARGUMENTS USED WHEN TRAINING CORRESPONDING NETWORK> --correlation`
+`python analyze.py vae --dataset plants_categorical <COMMAND LINE ARGUMENTS USED WHEN TRAINING CORRESPONDING NETWORK> --correlation`
+
+To reproduce the results in Figure 13, run:
+
+`python plot_fruits_reconstructions.py`
+
+To reproduce the results in Figure 14, run:
+
+`python plot_fruits_memory_pca.py`
+
+To reproduce the results in Figure 15, run:
+
+`python analyze.py popout --dataset attention_search_shape <COMMAND LINE ARGUMENTS USED WHEN TRAINING CORRESPONDING NETWORK> --visualize`
+`python analyze.py popout --dataset attention_search_both2 <COMMAND LINE ARGUMENTS USED WHEN TRAINING CORRESPONDING NETWORK> --visualize`
+
+To reproduce the results in Figure 16, run:
+
+`python plot_popout_setsize_effects.py`
+
+To produce RD-curves for gabor dataset (not included in final manuscript), run:
+
+`python plot_gabor_setsize_effects.py`
