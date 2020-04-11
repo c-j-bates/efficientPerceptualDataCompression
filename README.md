@@ -103,6 +103,7 @@ To reproduce the results in Figure 11, run:
 To reproduce the results in Figure 12, run:
 
 `python analyze.py vae --dataset plants_modal_prior_1D <COMMAND LINE ARGUMENTS USED WHEN TRAINING CORRESPONDING NETWORK> --correlation`
+
 `python analyze.py vae --dataset plants_categorical <COMMAND LINE ARGUMENTS USED WHEN TRAINING CORRESPONDING NETWORK> --correlation`
 
 To reproduce the results in Figure 13, run:
@@ -116,6 +117,7 @@ To reproduce the results in Figure 14, run:
 To reproduce the results in Figure 15, run:
 
 `python analyze.py popout --dataset attention_search_shape <COMMAND LINE ARGUMENTS USED WHEN TRAINING CORRESPONDING NETWORK> --visualize`
+
 `python analyze.py popout --dataset attention_search_both2 <COMMAND LINE ARGUMENTS USED WHEN TRAINING CORRESPONDING NETWORK> --visualize`
 
 To reproduce the results in Figure 16, run:
