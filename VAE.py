@@ -4,8 +4,7 @@ layers, MLP or conv layers, etc.
 """
 import os
 from data_utils import (generate_training_data, make_dataset_pths,
-                        load_or_make_dataset, make_memnet_checkpoint_dir,
-                        TASKS, RECURRENT, data_recur2conv)
+                        load_or_make_dataset, make_memnet_checkpoint_dir)
 import tensorflow as tf
 import numpy as np
 import random
@@ -43,7 +42,6 @@ class VAE():
                  decision_layers=1,
                  kernel_size=3,
                  load_decision_weights=False,
-                 load_memnet_weights=False,
                  task_weights=None,
                  w_reconstruction=[1., 1.],
                  w_decision=[1., 1.],
@@ -65,16 +63,11 @@ class VAE():
                  input_std=10,
                  input_mean=50,
                  input_distribution_dim=-1,
-                 probe_noise_std=0.1,
-                 alpha=1.,
                  sample_distribution="gaussian",
                  decision_dim=1,
-                 seqlen=6,
                  image_channels=3,
                  batch_size=20,
                  dropout_prob=1.0):
-        if load_memnet_weights and not load_decision_weights:
-            raise Exception
         if "float" in dataset and layer_type == "conv":
             raise NotImplementedError
         if dataset == "letter" and len(task_weights) != 4:
@@ -82,7 +75,6 @@ class VAE():
         if layer_type == "conv" and hidden_size % 2:
             raise Exception("Kernel size must be odd number")
         self.name = "VAE"
-        self.load_memnet_weights = load_memnet_weights
         activation_dict = {
             "relu": tf.nn.relu,
             "sigmoid": tf.nn.sigmoid,
@@ -90,20 +82,12 @@ class VAE():
             "elu": tf.nn.elu
         }
         self.dataset = dataset
-        if "addednoiseprobe" in dataset:
-            # Additive noise standard deviation when using
-            # 'pink_addednoiseprobe' or 'bandpass_addednoiseprobe'
-            self.probe_noise_std = probe_noise_std
-        else:
-            self.probe_noise_std = ""
         self.dataset_size = int(dataset_size)
         self.regenerate_steps = regenerate_steps
         self.batch_size = batch_size
         self.input_mean = input_mean
         self.input_std = input_std
         self.input_distribution_dim = input_distribution_dim
-        self.alpha = alpha
-        self.stimulus_dims = 2  # TODO: change for other datasets besides plants
         if task_weights is None:
             if decision_dim is None:
                 raise Exception(
@@ -120,10 +104,6 @@ class VAE():
             else:
                 raise Exception("task_weights must be list or tuple")
         self.task_weights = np.array(task_weights)
-        # if (dataset == "plants" and len(task_weights) != 1
-        #         and decision_target == "same_different"):
-        #     raise Exception("Decision target 'same_different' requires "
-        #                     "output of length one")
         self.decision_dim = decision_dim
         self.layer_type = layer_type
         self.loss_func_dec = loss_func_dec
@@ -141,10 +121,7 @@ class VAE():
                 self.decision_dim = i
                 self.decision_target = "recall"
         if loss_func_recon is None:
-            if dataset in TASKS["xentropy"]:
-                self.loss_func_recon = "xentropy"
-            else:
-                self.loss_func_recon = "squared_error"
+            self.loss_func_recon = "squared_error"
         else:
             self.loss_func_recon = loss_func_recon
         if dataset == "episodic_shape_race":
@@ -159,7 +136,6 @@ class VAE():
             self.image_channels = 3
         else:
             self.image_channels = 1
-        self.seqlen = seqlen if dataset in RECURRENT else 1
         # Size of hidden layer(s)
         self.hidden_size = hidden_size
         self.kernel_size = kernel_size  # Used if layers are convolutional
@@ -189,15 +165,6 @@ class VAE():
         self.checkpoint_top_dir = Path(checkpoint_dir)
         self.trainingset_dir = Path(trainingset_dir)
         self.checkpoint_dir = make_memnet_checkpoint_dir(checkpoint_dir, self)
-        # if load_decision_weights:
-        #     # Maybe deprecated...
-        #     make_memnet_checkpoint_dir(
-        #         checkpoint_dir, dataset, image_width, 0, 1, 1, hidden_size,
-        #         latent_size, decision_size, encoder_layers, decoder_layers,
-        #         [1, 1, 1], layer_type, input_mean, input_std,
-        #         input_distribution_dim)
-        # else:
-        #     self.decision_checkpoint_dir = None
         self.decision_checkpoint_dir = None
         print("Using {} activation".format(activation))
         print("Using {} loss function for reconstruction error".format(
@@ -259,19 +226,19 @@ class VAE():
             self.inputs = tf.placeholder(
                 tf.float32, [
                     None, self.image_width, self.image_width,
-                    self.image_channels * self.seqlen
+                    self.image_channels
                 ],
                 name='inputs')
             self.targets = tf.placeholder(
                 tf.float32, [
                     None, self.image_width, self.image_width,
-                    self.image_channels * self.seqlen
+                    self.image_channels
                 ],
                 name='targets')
             self.probes = tf.placeholder(
                 tf.float32, [
                     None, self.image_width, self.image_width,
-                    self.image_channels * self.seqlen
+                    self.image_channels
                 ],
                 name='probes')
         self.true_change_prob = tf.placeholder(
@@ -295,12 +262,15 @@ class VAE():
                 raise NotImplementedError
 
     def _encoder_output(self, lyr, reuse=False):
+        """Reshape the output of the encoder, depending on the type of
+        architecture
+        """
         if self.layer_type == "MLP":
             encoder_out = tf.layers.flatten(lyr)
         elif self.layer_type == "conv":
             encoder_out = tf.layers.conv2d(
                 lyr,
-                self.seqlen,
+                1,
                 1,
                 activation=None,
                 name="encoder_out",
@@ -311,6 +281,8 @@ class VAE():
         return encoder_out
 
     def build(self):
+        """Build the computation graph"""
+
         self.l2_reg = tf.contrib.layers.l2_regularizer(self.w_reg)
         self.global_step = tf.get_variable(
             name="global_step",
@@ -321,18 +293,9 @@ class VAE():
             collections=[
                 tf.GraphKeys.GLOBAL_VARIABLES, tf.GraphKeys.GLOBAL_STEP
             ])
-        if self.dataset in TASKS["images"]:
-            # Length of output vector
-            self.out_len = self.image_width**2 * self.image_channels
-            self.in_len = self.out_len  # Length of an input vector
-        elif self.dataset == "2Dfloat":
-            self.in_len = 2
-            self.out_len = 2
-        elif self.dataset == "NDim_float":
-            self.in_len = self.image_width
-            self.out_len = self.image_width
-        else:
-            raise NotImplementedError
+        # Length of output vector
+        self.out_len = self.image_width ** 2 * self.image_channels
+        self.in_len = self.out_len  # Length of an input vector
         self._make_placeholders()
 
         # Encoder
@@ -382,12 +345,12 @@ class VAE():
                 tf.reshape(
                     tf.layers.dense(
                         self.latent,
-                        h_size**2 * self.seqlen,
+                        h_size**2,
                         activation=self.activation,
                         name="hidden1_0",
                         kernel_regularizer=self.l2_reg,
                         bias_regularizer=self.l2_reg),
-                    [-1, h_size, h_size, self.seqlen])
+                    [-1, h_size, h_size, 1])
             ]
         else:
             self.hidden1_list = [
@@ -416,7 +379,7 @@ class VAE():
             ltype=self.layer_type,
             transpose=True,
             activation=None,
-            filters=self.image_channels * self.seqlen,
+            filters=self.image_channels,
             size=self.out_len,
             name="reconstruction")
         self.reconstruction_sig = tf.sigmoid(self.reconstruction)
@@ -453,8 +416,8 @@ class VAE():
         # space used to generate stimuli; can be set artificially or
         # correspond to subject responses)
         decision_dim = self.decision_dim
-        # MLP to map from target and probe (concatenated) to probability of
-        # same/different
+        # MLP to map from target and probe to decision probability (e.g.
+        # same/differet)
         if self.encode_probe:
             self.decision_hidden0 = tf.layers.dense(
                 tf.concat([tf.layers.flatten(self.probes_latent), self.latent],
@@ -490,48 +453,6 @@ class VAE():
         self.decision = self.decision_distance
         self.decision_sig = tf.sigmoid(self.decision)
 
-    def _make_scaffold(self):
-        """Organize checkpoint restorations, make training scaffold.
-        This code is mostly devoted to allowing us to separately load
-        weights from file for different parts of the network (specifically,
-        to load the decision module separately from the autoencoder module.
-        """
-        if self.decision_checkpoint_dir is None:
-            # All vars that go in training checkpoint
-            self.memnet_vars = [v for v in tf.global_variables()]
-        else:
-            # If preloading decision MLP weights, exclude them from saver
-            self.memnet_vars = [
-                v for v in tf.global_variables() if "decision" not in v.name
-            ]
-        self.decision_vars = [
-            v for v in tf.global_variables() if "decision" in v.name
-        ]
-        self.saver = tf.train.Saver(self.memnet_vars, save_relative_paths=True)
-        if self.decision_checkpoint_dir is not None:
-            self.decision_param_vals = restore_vars_from_list(
-                self.decision_vars, self.decision_checkpoint_dir)
-        else:
-            self.decision_param_vals = None
-        if self.load_memnet_weights:
-            self.memnet_param_vals = restore_vars_from_list(
-                self.memnet_vars, self.decision_checkpoint_dir)
-        else:
-            self.memnet_param_vals = restore_vars_from_list(
-                self.memnet_vars, self.checkpoint_dir)
-        self.scaffold = tf.train.Scaffold(
-            saver=self.saver,
-            init_op=[
-                var.assign(val) if 'global_step' not in var.name
-                and val is not None else tf.variables_initializer([var])
-                for var, val in zip(self.memnet_vars, self.memnet_param_vals)
-            ],
-            ready_for_local_init_op=tf.report_uninitialized_variables(
-                self.memnet_vars),
-            local_init_op=init_vars_from_list(self.decision_vars,
-                                              self.decision_param_vals)
-            if self.decision_param_vals is not None else None)
-
     def train(self, training_steps, report_interval, learning_rate,
               pregenerate_data):
 
@@ -539,6 +460,7 @@ class VAE():
         if "plant" in self.dataset:
             # Never generate plants training data on the fly
             pregenerate_data = True
+
         # Loss functions
 
         # Regularization
@@ -629,11 +551,11 @@ class VAE():
         # term to only backpropagate through the decoder, and not affect
         # the encoder parameters)
         with tf.control_dependencies([
-                g for g in grads_reconstruction + grads_decision + grads_rate
-                if g is not None
+            g for g in grads_reconstruction + grads_decision + grads_rate
+            if g is not None
         ]):
 
-            grads_zipped = []
+            grads_zipped = []  # Gradient, variable pairs
             tvars = tf.trainable_variables()
             for i, var in enumerate(tvars):
                 g_dec = grads_decision[i] if grads_decision[i] is not None \
@@ -654,7 +576,6 @@ class VAE():
                 grads_zipped, global_step=self.global_step)
 
         # Make training scaffold
-        # self._make_scaffold()
         self.saver = tf.train.Saver(save_relative_paths=True)
         # Training hooks
         self.report_interval = report_interval
@@ -675,27 +596,11 @@ class VAE():
             # Load or make dataset
             X, Probes, Change_var, Recall_targets = load_or_make_dataset(
                 self, dataset_pth, dataset_dir, self.dataset_size)
-            if self.dataset in TASKS["recurrent"]:
-                # Use feedforward CNN instead of LSTM layers for recurrent
-                # dataset.
-                # Check that layers are conv, otherwise abort
-                if not self.layer_type == "conv":
-                    raise Exception(
-                        "Dataset '{}' is recurrent, so layer type must be conv"
-                        ".".format(self.dataset))
-                # Reshape data so that time steps are stacked along same dim as
-                # image channels
-                # (batch, t, W, H, C) --> (batch, W, H, Cxt)
-                X = data_recur2conv(X)
-                Probes = data_recur2conv(Probes)
 
         # Begin training
         print("Beginning training.")
         with tf.train.SingularMonitoredSession(
-                checkpoint_dir=self.checkpoint_dir,
-                hooks=hooks,
-                # scaffold=self.scaffold
-                ) as sess:
+                checkpoint_dir=self.checkpoint_dir, hooks=hooks) as sess:
             start_iteration = sess.run(self.global_step)
             for step in range(start_iteration, training_steps):
                 if pregenerate_data:
@@ -717,9 +622,7 @@ class VAE():
                              mean=self.input_mean,
                              std=self.input_std,
                              dim=self.input_distribution_dim,
-                             probe_noise_std=self.probe_noise_std,
-                             logistic_decision=self.logistic_decision,
-                             seqlen=self.seqlen)
+                             logistic_decision=self.logistic_decision)
                     batch_inds = np.array([
                         random.randrange(0, self.dataset_size)
                         for i in range(self.batch_size)
@@ -744,12 +647,7 @@ class VAE():
                          mean=self.input_mean,
                          std=self.input_std,
                          dim=self.input_distribution_dim,
-                         probe_noise_std=self.probe_noise_std,
-                         logistic_decision=self.logistic_decision,
-                         seqlen=self.seqlen)
-                    if self.dataset in TASKS["recurrent"]:
-                        x = data_recur2conv(x)
-                        probes = data_recur2conv(probes)
+                         logistic_decision=self.logistic_decision)
                 if self.decision_target == "recall":
                     # If decision target is stimulus value, no need to input
                     # a probe image
@@ -790,9 +688,7 @@ class VAE():
                          mean=self.input_mean,
                          std=self.input_std,
                          dim=self.input_distribution_dim,
-                         probe_noise_std=self.probe_noise_std,
-                         logistic_decision=self.logistic_decision,
-                         seqlen=self.seqlen)
+                         logistic_decision=self.logistic_decision)
                     if self.decision_target == "recall":
                         # If decision target is stimulus value, no need to
                         # input a probe image
@@ -817,87 +713,16 @@ class VAE():
                         "{:.5f}, decision: {:.5f}".format(
                             loss, ploss, rloss, dloss))
 
-    # def train0(self, training_steps, report_interval, lr, dataset_size, alpha=1.):
-    #     # Optimizer
-    #     trainable_variables = tf.trainable_variables()
-    #     self.lr = lr
-    #     self.optimizer = tf.train.AdamOptimizer(self.lr)
-    #     self.grads, _ = tf.clip_by_global_norm(
-    #         tf.gradients(self.loss, trainable_variables), 50.)
-    #     # Training op
-    #     self.train_op = self.optimizer.apply_gradients(
-    #         zip(self.grads, trainable_variables))
-    #     self.train_op = self.optimizer.minimize(self.loss,
-    #                                             global_step=self.global_step)
-    #     self.report_interval = report_interval
-    #     self.saver = tf.train.Saver()
-    #     if self.report_interval > 0:
-    #             hooks = [
-    #                 tf.train.CheckpointSaverHook(
-    #                     checkpoint_dir=self.checkpoint_dir,
-    #                     save_steps=self.report_interval,
-    #                     saver=self.saver)
-    #             ]
-    #     else:
-    #         hooks = []
-
-    #     # Pre-generate data
-    #     self.dataset_size = dataset_size
-    #     self.layer_type = "MLP"  # Add these attributes to VAE for compatibility
-    #     self.task_weights = [1., 1.]
-    #     self.probe_noise_std = ""
-    #     self.alpha = alpha
-    #     dataset_dir, dataset_pth = make_dataset_pths(self)
-    #     print("Dataset path: ", dataset_pth)
-    #     X, _, _ = load_or_make_dataset(
-    #         self, dataset_pth, dataset_dir, self.dataset_size)
-
-    #     with tf.train.SingularMonitoredSession(
-    #             checkpoint_dir=self.checkpoint_dir, hooks=hooks) as sess:
-    #         start_iteration = sess.run(self.global_step)
-    #         for step in range(start_iteration, training_steps):
-    #             # Generate data on the fly
-    #             # _, x = generate_training_data(self.batch_size, self.image_width)
-    #             # x, _, _ = generate_training_data(self.batch_size, self.image_width,
-    #             #                                  dataset=self.dataset)
-    #             batch_inds = np.array([random.randrange(0, self.dataset_size)
-    #                                    for i in range(self.batch_size)])
-    #             x = X[batch_inds]
-    #             # xhat = sess.run(self.outputs, feed_dict={self.inputs: x,
-    #             #                                          self.targets: x})
-    #             # from ipdb import set_trace as BP; BP()
-    #             sess.run([self.train_op],
-    #                      feed_dict={self.inputs: x, self.targets: x})
-    #             if step % self.report_interval == 0:
-    #                 summary, rloss, KLloss, loss = sess.run(
-    #                     [self.merged_summaries, self.reconstruction_loss,
-    #                      self.kl_loss, self.loss],
-    #                     feed_dict={self.inputs: x, self.targets: x})
-    #                 print("Step: ", step)
-    #                 print ("total loss: {:.3f}, KL loss: {:.3f}, "
-    #                        "reconstruction loss: {:.3f}".format(
-    #                            loss, KLloss, rloss))
-    #                 self.summaries_writer.add_summary(summary, step)
-
     def predict(self, x, keep_session=False):
-        if self.dataset in TASKS["xentropy"]:
-            target_var = self.reconstruction_sig
-        else:
-            target_var = self.reconstruction
+        target_var = self.reconstruction
         if keep_session:
             if self.sess is None:
-                # self._make_scaffold()
                 self.sess = tf.train.SingularMonitoredSession(
-                    checkpoint_dir=self.checkpoint_dir,
-                    # scaffold=self.scaffold
-                    )
+                    checkpoint_dir=self.checkpoint_dir)
             y = self.sess.run(target_var, feed_dict={self.inputs: x})
         else:
-            # self._make_scaffold()
             with tf.train.SingularMonitoredSession(
-                    checkpoint_dir=self.checkpoint_dir,
-                    # scaffold=self.scaffold
-                    ) as sess:
+                    checkpoint_dir=self.checkpoint_dir) as sess:
                 y = sess.run(target_var, feed_dict={self.inputs: x})
         return y
 
@@ -910,22 +735,16 @@ class VAE():
             decision_var = self.decision
         if keep_session:
             if self.sess is None:
-                # self._make_scaffold()
                 self.sess = tf.train.SingularMonitoredSession(
-                    checkpoint_dir=self.checkpoint_dir,
-                    # scaffold=self.scaffold
-                    )
+                    checkpoint_dir=self.checkpoint_dir)
             decision = self.sess.run(
                 decision_var, feed_dict={
                     self.inputs: x,
                     self.probes: y
                 })
         else:
-            # self._make_scaffold()
             with tf.train.SingularMonitoredSession(
-                    checkpoint_dir=self.checkpoint_dir,
-                    # scaffold=self.scaffold
-                    ) as sess:
+                    checkpoint_dir=self.checkpoint_dir) as sess:
                 decision = sess.run(
                     decision_var, feed_dict={
                         self.inputs: x,
@@ -934,37 +753,26 @@ class VAE():
         return decision
 
     def predict_both(self, x, y, keep_session=False, sigmoid=True):
-        if self.dataset in TASKS["xentropy"]:
-            target_var = self.reconstruction_sig
-        else:
-            target_var = self.reconstruction
+        target_var = self.reconstruction
         if sigmoid:
             decision_var = self.decision_sig
         else:
             decision_var = self.decision
         if keep_session:
             if self.sess is None:
-                # self._make_scaffold()
                 self.sess = tf.train.SingularMonitoredSession(
-                    checkpoint_dir=self.checkpoint_dir,
-                    # scaffold=self.scaffold
-                    )
+                    checkpoint_dir=self.checkpoint_dir)
             y, decision = self.sess.run([target_var, decision_var],
                                         feed_dict={
                                             self.inputs: x,
-                                            self.probes: y
-                                        })
+                                            self.probes: y})
         else:
-            # self._make_scaffold()
             with tf.train.SingularMonitoredSession(
-                    checkpoint_dir=self.checkpoint_dir,
-                    # scaffold=self.scaffold
-                    ) as sess:
+                    checkpoint_dir=self.checkpoint_dir) as sess:
                 y, decision = sess.run([target_var, decision_var],
                                        feed_dict={
                                            self.inputs: x,
-                                           self.probes: y
-                                       })
+                                           self.probes: y})
         return y, decision
 
     def encode(self, x, keep_session=False):
@@ -1015,21 +823,15 @@ def add_parser_args(parser):
         default=1000,
         help="Report interval (i.e. printing progress)")
     parser.add_argument(
-        "--lr_distortion",
-        type=float,
-        default=0.001,
-        help="Learning rate for distortion loss")
-    parser.add_argument(
-        "--lr_rate",
-        type=float,
-        default=0.001,
-        help="Learning rate for rate loss")
-    parser.add_argument(
         "--steps",
         type=int,
         default=100000000,
         help="Number of training steps")
-    parser.add_argument("--batch", type=int, default=16, help="Batch size")
+    parser.add_argument(
+        "--batch",
+        type=int,
+        default=16,
+        help="Batch size")
     parser.add_argument(
         "--pregenerate_data",
         action="store_true",
@@ -1100,27 +902,25 @@ def add_parser_args(parser):
         help="Probability parameter in tf.nn.dropout")
     # Architecture
     parser.add_argument(
-        "--hidden", type=int, default=100, help="Number of hidden units")
+        "--hidden",
+        type=int,
+        default=100,
+        help="Number of hidden units")
     parser.add_argument(
-        "--latent", type=int, default=3, help="Number of latent units")
+        "--latent",
+        type=int,
+        default=3,
+        help="Number of latent units")
     parser.add_argument(
         "--kernel_size",
         type=int,
         default=3,
-        help="When using convolutional layers, size of "
-        "kernel.")
-    parser.add_argument(
-        "--seqlen",
-        type=int,
-        default=6,
-        help="Number of recurrent steps (same for both "
-        "encoder and decoder")
+        help="When using convolutional layers, size of kernel.")
     parser.add_argument(
         "--decision_size",
         type=int,
         default=100,
-        help="Number of units in layers that implement "
-        "decision")
+        help="Number of units in layers that implement decision")
     parser.add_argument(
         "--decision_dim",
         type=int,
@@ -1152,8 +952,6 @@ def add_parser_args(parser):
         type=str,
         default="MLP",
         help="Type of layer to use (MLP or conv)")
-    parser.add_argument(
-        "--l2", type=float, default=1e-8, help="Weight for l2 regularizer.")
     parser.add_argument(
         "--activation",
         type=str,
@@ -1192,14 +990,6 @@ def add_parser_args(parser):
         help="Whether to encode probe stimulus using same "
         "encoder as target. Otherwise, just put input raw "
         "pixels directly into decision module.")
-    parser.add_argument(
-        "--load_memnet_weights",
-        action="store_true",
-        help="Load pretrained weights for memory-channel layers"
-        " from same checkpoint as decision weights. Weights "
-        "are still trained, but note that gradients will not "
-        "pass through some layers if latent_reg_loss_weight is "
-        "zero. (This is by design.)")  # DEPRECATED?
     parser.add_argument(
         "--sampling_off",
         action="store_true",
@@ -1258,19 +1048,6 @@ def add_parser_args(parser):
         action="store_true",
         help="Whether stimuli "
         "are color (3 channels) or grayscale (1 channel)")
-    # Noise filters dataset (DEPRECATED)
-    parser.add_argument(
-        "--alpha",
-        type=float,
-        default=1.,
-        help="In pink noise images, filter exponent (1/f^alpha)")
-    parser.add_argument(
-        "--probe_noise_std",
-        type=float,
-        default=0.2,
-        help="Parameter used in creating probes for filtered "
-        "noise datasets ('pink_addednoiseprobe' or 'bandpass_"
-        "addednoiseprobe')")
     return parser
 
 
@@ -1294,7 +1071,6 @@ def make_net(args):
         decoder_layers=args.decoder_layers,
         decision_layers=args.decision_layers,
         load_decision_weights=args.load_decision_weights,
-        load_memnet_weights=args.load_memnet_weights,
         w_reconstruction=args.reconstruction_loss_weights,
         w_rate=args.rate_loss_weight,
         beta0=args.beta0,
@@ -1310,10 +1086,7 @@ def make_net(args):
         input_mean=args.mean,
         input_std=args.std,
         input_distribution_dim=args.dim,
-        probe_noise_std=args.probe_noise_std,
-        alpha=args.alpha,
         sample_distribution=args.sample_distribution,
-        seqlen=args.seqlen,
         dropout_prob=args.dropout_prob)
     return net
 

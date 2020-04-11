@@ -1,9 +1,7 @@
 """VAE designed to handle large-scale natural image datasets.
 """
 import os
-from data_utils import (generate_training_data,
-                        make_memnet_checkpoint_dir,
-                        TASKS,
+from data_utils import (make_memnet_checkpoint_dir,
                         get_fruit360_filenames_and_labels)
 import tensorflow as tf
 import numpy as np

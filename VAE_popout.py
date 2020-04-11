@@ -2,8 +2,7 @@
 Load features from pretrained network.
 """
 import os
-from data_utils import (generate_training_data, make_memnet_checkpoint_dir,
-                        TASKS)
+from data_utils import (generate_training_data, make_memnet_checkpoint_dir)
 import tensorflow as tf
 import numpy as np
 import random
@@ -376,10 +375,7 @@ class VAE():
                     t0 = time.time()
 
     def predict(self, x, keep_session=False):
-        if self.dataset in TASKS["xentropy"]:
-            target_var = self.reconstruction_sig
-        else:
-            target_var = self.reconstruction
+        target_var = self.reconstruction
         if keep_session:
             if self.sess is None:
                 self.sess = tf.train.SingularMonitoredSession(
@@ -410,10 +406,7 @@ class VAE():
         return decision
 
     def predict_both(self, x, y, keep_session=False, sigmoid=True):
-        if self.dataset in TASKS["xentropy"]:
-            target_var = self.reconstruction_sig
-        else:
-            target_var = self.reconstruction
+        target_var = self.reconstruction
         if sigmoid:
             decision_var = self.decision_sig
         else:
