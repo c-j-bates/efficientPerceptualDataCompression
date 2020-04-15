@@ -1,5 +1,5 @@
-"""VAE designed to handle cifar10 or cifar100 datasets, specifically.
-Load features from pretrained network.
+"""VAE designed to implement the pop-out visual search experiments, using a
+fixed convolutional architecture.
 """
 import os
 from data_utils import (generate_training_data, make_memnet_checkpoint_dir)

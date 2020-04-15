@@ -1,4 +1,5 @@
-"""VAE designed to handle large-scale natural image datasets.
+"""VAE designed to handle large-scale natural image datasets (specifically,
+here we train on the fruits-360 dataset)
 """
 import os
 from data_utils import (make_memnet_checkpoint_dir,
